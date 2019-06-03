@@ -1,5 +1,5 @@
+// jshint esversion: 6
 var express = require("express");
-var handlebars = require("express-handlebars");
 var logger = require("morgan");
 var mongoose = require("mongoose");
 
@@ -21,10 +21,20 @@ var app = express();
 
 // Use morgan logger for logging requests
 app.use(logger("dev"));
-// Parse request body as JSON
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-// Make public a static folder
+// use handlebars
+var exphbs = require("express-handlebars");
+
+app.engine("handlebars", exphbs({
+    defaultLayout: "main",
+    // define helper function
+    helpers: {
+        isEqual: function (expectedValue, value) {
+            return value === expectedValue;
+        }
+    }
+}));
+app.set("view engine", "handlebars");
+// static public folder
 app.use(express.static("public"));
 
 // Connect to the Mongo DB
@@ -114,6 +124,11 @@ app.post("/articles/:id", function(req, res) {
                 res.json(results);
             });
     });
+});
+
+app.get("/", function (req, res) {
+    db.articles.find({})
+        .then(articles => app.render("index"), articles)
 });
 
 // Start the server
