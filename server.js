@@ -2,10 +2,7 @@
 var express = require("express");
 var logger = require("morgan");
 var mongoose = require("mongoose");
-
-// Our scraping tools
-// Axios is a promised-based http library, similar to jQuery's Ajax method
-// It works on the client and on the server
+var bodyParser = require('body-parser');
 var axios = require("axios");
 var cheerio = require("cheerio");
 
@@ -37,6 +34,12 @@ app.set("view engine", "handlebars");
 // static public folder
 app.use(express.static("public"));
 
+// configure the app to use bodyParser()
+app.use(bodyParser.urlencoded({
+    extended: true
+}));
+app.use(bodyParser.json());
+
 // Connect to the Mongo DB
 var MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost/newsArticles";
 
@@ -47,46 +50,62 @@ mongoose.connect(MONGODB_URI, { useNewUrlParser: true });
 // A GET route for scraping the echoJS website
 app.get("/", function(req, res) {
     // First, we grab the body of the html with axios
-    axios.get("http://www.echojs.com/").then(function(response) {
-        // Then, we load that into cheerio and save it to $ for a shorthand selector
+    axios.get("https://www.bing.com/news").then(function(response) {
+        // loading data with cheerio
         var $ = cheerio.load(response.data);
         console.log("got some data");
-        let results = [];
-        // Now, we grab every h2 within an article tag, and do the following:
-        $("div.news-card-body").each(function(i, element) {
+        let articles = [];
+        // on this site, each article is contained in a div with class 'news-card-body'
+        $("div.news-card-body").each(function (i, element) {
+            // is there anything here?
+            if (!element) return;
             // Save an empty result object
-            var result = {};
+            var article = {};
 
-            // Add the text and href of every link, and save them as properties of the result object
-            result.title = $(this)
-                .children("a")
+            // gather the relevant data from each card
+            article.title = $(this)
+                .find("a.title")
                 .text();
-            result.link = $(this)
-                .children("a")
+            article.link = $(this)
+                .find("a.title")
                 .attr("href");
-
-            // Create a new Article using the `result` object built from scraping
-            db.Article.create(result)
-                .then(function(dbArticle) {
-                    // View the added result in the console
-                    console.log(dbArticle);
-                })
-                .catch(function(err) {
-                    // If an error occurred, log it
-                    console.log(err);
-                });
-            results.push(result);
+            article.snippet = $(this)
+                .find("div.snippet")
+                .text();
+            article.id = articles.length;
+            articles.push(article);
         });
 
-        // Send a message to the client
-        res.render("Scrape Complete");
+        // show the articles
+        // db.Articles.find({}).then(results => {
+        //     console.log(results);
+            res.render("index", { articles: articles });
+        // });
     });
+});
+
+app.post("/api/save", function (req, res) {
+    console.log("saving: ", req.body);
+    // upsert the requested article
+    var query = { 'title': req.body.title };
+    if (query.title) {
+        console.log("saved.");
+        db.Articles.findOneAndUpdate(query, req.body,
+            { upsert: true, useFindAndModify: false })
+            .catch(function (err) {
+                // If an error occurred, log it
+                console.log(err);
+                res.send(500, { error: err });
+            });
+    }
+    else console.log("failed: empty.");
+    res.send(200, 'saved');
 });
 
 // Route for getting all Articles from the db
 app.get("/articles", function(req, res) {
 // TODO: Finish the route so it grabs all of the articles
-    db.Article.find({}).then(function (articles) {
+    db.Articles.find({}).then(function (articles) {
         console.log(articles);
         res.json(articles);
     }).catch(function (err) {
@@ -96,13 +115,8 @@ app.get("/articles", function(req, res) {
 
 // Route for grabbing a specific Article by id, populate it with its note
 app.get("/articles/:id", function(req, res) {
-    // TODO
-    // ====
-    // Finish the route so it finds one article using the req.params.id,
-    // and run the populate method with "note",
-    // then responds with the article with the note included
     console.log("finding article: ", req.params.id);
-    db.Article.findOne({ _id: mongoose.Types.ObjectId(req.params.id) })
+    db.Articles.findOne({ _id: mongoose.Types.ObjectId(req.params.id) })
         .populate("note")
         .then(function (articles) {
             res.json(articles);
@@ -118,7 +132,7 @@ app.post("/articles/:id", function(req, res) {
   // and update it's "note" property with the _id of the new note
     console.log("adding note to article: ", req.params.id);
     db.Note.create(req.body).then(note => {
-        db.Article.findOneAndUpdate({ _id: mongoose.Types.ObjectId(req.params.id) },
+        db.Articles.findOneAndUpdate({ _id: mongoose.Types.ObjectId(req.params.id) },
             { $push: { "note": note } },
             { new: true, useFindAndModify: false })
             .then(function (results) {

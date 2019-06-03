@@ -1,5 +1,52 @@
-<!-- 5. Output the animalType string, pet boolean, and fierceness number to the page for all the pets. -->
-{{#each article}}
-    <h3>{{title}}</h3>
-    <p>{{pet}}</p>
+<link rel="stylesheet" href="/css/index.css">
+<div id="navbar">
+    <h1 class="navtitle">Mongo News Machine</h1>
+    <button class="navbutton highlight">latest stories</button>
+    <button class="navbutton">view saved</button>
+</div>
+<div id="articles">
+{{#each articles}}
+    <div class="news-item-card" id="{{id}}">
+        <h4 class='cardtitle'>{{title}}</h4>
+        <button class='cardbutton' onclick='
+            console.log({
+                    title: "{{title}}",
+                    snippet: "{{snippet}}",
+                    link: "{{link}}"
+                });
+            {{!-- // post to save api --}}
+            $.ajax({
+                type: "POST",
+                url: "/api/save",
+                data: {
+                    title: "{{title}}",
+                    snippet: "{{snippet}}",
+                    link: "{{link}}"
+                },
+                success: () => fadecard("{{id}}"),
+            });            
+        '>
+        save</button>
+        <button class='cardbutton'>go -></button>
+        <br>
+        <p>{{snippet}}</p>
+    </div>
 {{/each}}
+</div>
+<script>
+    function fadecard(id) {
+        // post to saved articles
+        // show that it's been saved.
+        $(`#${id}`).html('article saved.');
+        // collapse and disappear after a second
+        setTimeout(() => {
+            $(`#${id}`)
+            .animate({height: 0, padding: 0, margin: 0, border: 0}, 500, function() {
+                // clear text as well
+                $(this).html("");
+                // delete it
+                $(this).remove();
+            })
+        }, 1000)
+    }
+</script>
