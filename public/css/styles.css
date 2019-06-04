@@ -19,15 +19,17 @@ body {
 .navbutton {
     border: 1px solid black;
     background-color: beige;
-    color: black;
+    color: gray;
     float: right;
     margin: 20px;
     font-size: 16pt;
     border-radius: 5px;
+    cursor: pointer;
 }
 
 .highlight {
-    border: 3px solid black
+    border: 3px solid black;
+    color: black;
 }
 
 .articles {
@@ -44,14 +46,34 @@ body {
 }
 
 .cardtitle {
-    border-bottom: 1px solid black
+    border-bottom: 1px solid black;
+    text-decoration: none;
+    color: black;
+    font-size: 14pt;
+    font-weight: 600;
+    width: 100%;
+    clear: right;
+    display: inline-block;
+    margin-bottom: 20px;
 }
 
 .cardbutton {
     font-size: 12pt;
     margin: 0 20px;
     border-radius: 3px;
-    background-color: beige
+    background-color: beige;
+    cursor: pointer;
+}
+
+.noteWindow {
+    border: 1px solid black;
+    border-radius: 5px;
 }
 
 button:focus {outline:0;}
+
+@media screen and (max-width: 680px) {
+    .navtitle {
+        width: 100%;
+    }
+}

@@ -1,0 +1,63 @@
+<link rel="stylesheet" href="/css/styles.css">
+<script src="/news.js"></script>
+<div id="navbar">
+    <h1 class="navtitle">Mongo News Machine</h1>
+    <button class="navbutton" id="latest" onclick="window.location.href='/'">latest stories</button>
+    <button class="navbutton highlight" id="saved" onclick="window.location.href='/articles/saved'">view saved
+    </button>
+</div>
+<div id="articles">
+    {{#each articles}}
+    <div class="news-item-card" id="{{id}}">
+        <h3 class='cardtitle'>{{title}}</h3>
+        <button class='cardbutton' onclick='
+            {{!-- // post to remove api --}}
+            $.ajax({
+                type: "POST",
+                url: "/api/remove",
+                data: {
+                    title: "{{title}}",
+                },
+                success: () => fadecard("{{id}}", "removed"),
+            });            
+        '>
+            <- remove</button>
+        <button class='cardbutton' onClick="window.open('{{link}}');">
+            read</button>
+        <button class='cardbutton' onClick="takeNotes('{{id}}');">
+            notes -></button>
+        <br>
+        {{!-- notes --}}
+        <div class="noteWindow">
+            <button onClick="takeNote('{{id}}')">new note</button>
+            {{#each note}}
+                <p>{{text}}</p>
+            {{/each}}
+        </div>
+        <p>{{snippet}}</p>
+    </div>
+    {{/each}}
+</div>
+<script>
+    function takeNote(id) {
+        console.log("taking notes on: ", id);
+        $(`#${id}`).children(".noteWindow")
+            .append(
+                "<br>",
+                $(`<input type='text' id='note-${id}'>`),
+                "<br>",
+                $("<button>")
+                    .text("submit")
+                    .click(() => {
+                        $.ajax({
+                            type: "POST",
+                            url: "/articles/{{id}}",
+                            data: {
+                                text: $(`#note-${id}`).val(),
+                            },
+                            success: () => fadecard("{{id}}", "removed"),
+                        });            
+                    })
+            )
+    }
+</script>

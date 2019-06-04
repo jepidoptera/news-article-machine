@@ -1,13 +1,18 @@
-<link rel="stylesheet" href="/css/index.css">
+<link rel="stylesheet" href="/css/styles.css">
 <div id="navbar">
     <h1 class="navtitle">Mongo News Machine</h1>
-    <button class="navbutton highlight">latest stories</button>
-    <button class="navbutton">view saved</button>
+    <button class="navbutton" id="latest" 
+        onclick="window.location.href='/'">latest stories</button>
+    <button class="navbutton" id="saved" 
+        onclick="window.location.href='/articles/saved'">view saved
+    </button>
 </div>
 <div id="articles">
 {{#each articles}}
     <div class="news-item-card" id="{{id}}">
-        <h4 class='cardtitle'>{{title}}</h4>
+        <h3 class='cardtitle'>{{title}}</h3>
+        <button class='cardbutton' onClick="window.open('{{link}}');">
+            read</button>
         <button class='cardbutton' onclick='
             console.log({
                     title: "{{title}}",
@@ -23,21 +28,20 @@
                     snippet: "{{snippet}}",
                     link: "{{link}}"
                 },
-                success: () => fadecard("{{id}}"),
+                success: () => fadecard("{{id}}", "saved"),
             });            
         '>
-        save</button>
-        <button class='cardbutton'>go -></button>
+        save -></button>
         <br>
         <p>{{snippet}}</p>
     </div>
 {{/each}}
 </div>
 <script>
-    function fadecard(id) {
+    function fadecard(id, action) {
         // post to saved articles
         // show that it's been saved.
-        $(`#${id}`).html('article saved.');
+        $(`#${id}`).html(`article ${action}.`);
         // collapse and disappear after a second
         setTimeout(() => {
             $(`#${id}`)
@@ -49,4 +53,8 @@
             })
         }, 1000)
     }
+    $(document).ready(() => {
+        // light up the appropriate tab button
+        $("#{{view}}").addClass("highlight");
+    })
 </script>
