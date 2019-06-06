@@ -83,8 +83,14 @@ app.get("/", function(req, res) {
 
 // view saved articles
 app.get("/articles/saved", function (req, res) {
-    db.Articles.find({}).populate("note").then(articles => {
-        console.log(articles);
+    // populate the notes in reverse order
+    db.Articles.find({}).populate("notes").then(articles => {
+        // console.log(articles);
+        // articles.forEach(article => {
+        //     // sort the notes in reverse
+        //     console.log(article.notes);
+        //     article.notes = article.notes.sort((a, b) => (a.id < b.id ? 1 : -1) );
+        // });
         // show them, most recent first
         res.render("saved", { view: "saved", articles: articles.reverse() });
     });
@@ -117,14 +123,15 @@ app.post("/api/save", function (req, res) {
 // move an article from "latest" to "saved" sections
 app.post("/api/remove", function (req, res) {
     console.log("removing: ", req.body);
-    // upsert the requested article
+    // delete the requested article from database
     var query = { 'title': req.body.title };
     if (query.title) {
         console.log("saved.");
-        db.Articles.remove(query)
-            .then(
+        db.Articles.deleteOne(query)
+            .then(function (data) {
                 // send back success code
-                res.send(200, 'saved'))
+                res.status(200).json(data);
+            })
             .catch(function (err) {
                 // If an error occurred, log it
                 console.log(err);
@@ -143,13 +150,26 @@ app.post("/articles/:id", function(req, res) {
     console.log("adding note", req.body.text, "to article: ", req.params.id);
     db.Note.create(req.body).then(note => {
         db.Articles.findOneAndUpdate({ _id: mongoose.Types.ObjectId(req.params.id) },
-            { $push: { "note": note } },
+            { $push: { "notes": note } },
             { new: true, useFindAndModify: false })
             .then(function (results) {
-                console.log("found and modified:", results);
-                res.json(results);
+                console.log("found and modified:", results.title, "with", note);
+                // send back just the note
+                res.json(note);
             });
     });
+});
+
+app.delete("/api/:articleId/notes/:noteId", function (req, res) {
+    console.log("deleting note:", req.params.noteId, "from", req.params.articleId);
+    db.Articles.findOneAndUpdate({ _id: mongoose.Types.ObjectId(req.params.articleId) },
+        { $pull: { "notes": mongoose.Types.ObjectId(req.params.noteId) } },
+        { useFindAndModify: false })
+        .then(function (results) {
+            console.log("found and modified:", results);
+            // send back results... curious to see what that will be
+            res.json(results);
+        });
 });
 
 // Start the server

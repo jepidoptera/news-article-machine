@@ -24,15 +24,32 @@
             <- remove</button>
         <button class='cardbutton' onClick="window.open('{{link}}');">
             read</button>
-        <button class='cardbutton' onClick="takeNotes('{{id}}');">
-            notes -></button>
-        <br>
+        <br> <br>
         {{!-- notes --}}
         <div class="noteWindow">
-            <button onClick="takeNote('{{id}}')">new note</button>
-            {{#each note}}
-                <p>{{text}}</p>
-            {{/each}}
+            <div id="notes-{{id}}">
+                {{#each notes}}
+                    {{!-- this one is tagged with the unique ID for the note
+                    as opposed to the id for the article. different. --}}
+                    <p id="note-{{id}}">{{text}}
+                        <button class="deleteNote" 
+                            id="deleteNote-{{id}}"
+                            onClick="deleteNote('{{../id}}', '{{id}}')">
+                            X
+                        </button>
+                    </p>
+                {{/each}}
+            </div>
+            <div id="noteForm">
+                <button id="newNoteButton-{{id}}" onClick="takeNote('{{id}}')">new note</button>
+                <form class="noteInput" id="noteInput-{{id}}" data-id="{{id}}">
+                    <br>
+                    <input id="newnote-{{id}}" type="text">
+                    <br>
+                    <button type="submit" class="submitButton">
+                        submit</button>
+                </form>
+            </div>
         </div>
         <p>{{snippet}}</p>
     </div>
@@ -41,23 +58,65 @@
 <script>
     function takeNote(id) {
         console.log("taking notes on: ", id);
-        $(`#${id}`).children(".noteWindow")
-            .append(
-                "<br>",
-                $(`<input type='text' id='note-${id}'>`),
-                "<br>",
-                $("<button>")
-                    .text("submit")
-                    .click(() => {
-                        $.ajax({
-                            type: "POST",
-                            url: "/articles/{{id}}",
-                            data: {
-                                text: $(`#note-${id}`).val(),
-                            },
-                            success: () => fadecard("{{id}}", "removed"),
-                        });            
-                    })
-            )
+        $(`#noteInput-${id}`).show();
+        $(`#newnote-${id}`).focus();
+        $(`#newNoteButton-${id}`).hide();
     }
+    function deleteNote(articleId, noteId) {
+        console.log("deleting note: ", noteId);
+        // call to api
+        $.ajax({
+            type: "DELETE",
+            url: `/api/${articleId}/notes/${noteId}`,
+            data: {
+                id: noteId,
+            },
+            success: function () {
+                $(`#note-${noteId}`).remove();
+            }
+        });
+    }
+    // set up events for note buttons
+    $(document).ready(() => {
+        $(".noteInput").submit(function(event) {
+            // we want to stay on this page
+            event.preventDefault();
+            // get article ID
+            let id = $(this).data("id");
+            // don't accept a blank note
+            if (!$(`#newnote-${id}`).val()) {
+                console.log("rejecting blank note.");
+                return;
+            } 
+            console.log("submitting note on: ", id);
+            $.ajax({
+                type: "POST",
+                url: `/articles/${id}`,
+                data: {
+                    text: $(`#newnote-${id}`).val(),
+                },
+                success: function (note) {
+                    // append the new note
+                    $(`#notes-${id}`).append(
+                        // add note paragraph
+                        $("<p>")
+                            .attr("id", `note-${note._id}`)
+                            .text(note.text)
+                            // add delete button
+                            .append($("<button>")
+                                .addClass("deleteNote")
+                                .attr("id", `deleteNote-${note._id}`)
+                                .click(() => {deleteNote(id, note._id)})
+                                .text("X")
+                            )
+                    );
+                    // hide the note taking form
+                    $(`#newnote-${id}`).val("");
+                    $(`#noteInput-${id}`).hide();
+                    // show the new note button
+                    $(`#newNoteButton-${id}`).show();
+                }
+            });
+        })
+    })
 </script>
