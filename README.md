@@ -1,5 +1,3 @@
 # Scraping with Mongoose
 
-## Instructions
-
-* Open `server.js` and complete the empty routes for accessing all articles, accessing a specific article, and for saving a new article.
+This app finds news articles from the internet, then lets you save and comment on articles you like.  Articles and comments are saved to MongoDB on Heroku.
